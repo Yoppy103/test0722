@@ -56,6 +56,30 @@ def save_image(message_id, user_id):
 def ocr_image(image_path):
     """画像をOCRで文字起こしする関数"""
     try:
+        # Heroku環境でのGoogle Cloud認証設定
+        if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
+            # 環境変数からJSON認証情報を取得して一時ファイルに保存
+            import tempfile
+            import json
+            
+            credentials_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+            try:
+                # JSONとして解析できるかチェック
+                json.loads(credentials_json)
+                
+                # 一時ファイルに保存
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    f.write(credentials_json)
+                    temp_credentials_path = f.name
+                
+                # 環境変数を一時的に変更
+                original_credentials = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_credentials_path
+                
+            except json.JSONDecodeError:
+                print("GOOGLE_APPLICATION_CREDENTIALSが有効なJSONではありません")
+                return "認証設定エラー: 無効なJSON形式"
+        
         # Vision APIクライアントを初期化
         client = vision.ImageAnnotatorClient()
         
@@ -74,13 +98,37 @@ def ocr_image(image_path):
             # 最初の結果が全文を含む
             ocr_text = texts[0].description
             print(f"OCR結果: {ocr_text}")
+            
+            # 一時ファイルを削除
+            if 'temp_credentials_path' in locals():
+                try:
+                    os.unlink(temp_credentials_path)
+                except:
+                    pass
+            
             return ocr_text
         else:
             print("テキストが検出されませんでした")
+            
+            # 一時ファイルを削除
+            if 'temp_credentials_path' in locals():
+                try:
+                    os.unlink(temp_credentials_path)
+                except:
+                    pass
+            
             return "テキストが検出されませんでした"
             
     except Exception as e:
         print(f"OCR処理中にエラーが発生しました: {e}")
+        
+        # 一時ファイルを削除
+        if 'temp_credentials_path' in locals():
+            try:
+                os.unlink(temp_credentials_path)
+            except:
+                pass
+        
         return f"OCR処理エラー: {str(e)}"
 
 @app.route("/callback", methods=['POST'])
@@ -145,17 +193,50 @@ def main():
     
     # Google Cloud Vision APIの認証確認
     try:
+        # Heroku環境でのGoogle Cloud認証設定
+        if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
+            import tempfile
+            import json
+            
+            credentials_json = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+            try:
+                json.loads(credentials_json)
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                    f.write(credentials_json)
+                    temp_credentials_path = f.name
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = temp_credentials_path
+            except json.JSONDecodeError:
+                print("GOOGLE_APPLICATION_CREDENTIALSが有効なJSONではありません")
+                return
+        
         # テスト用のクライアントを作成して認証を確認
         client = vision.ImageAnnotatorClient()
         print("Google Cloud Vision APIの認証が正常です")
+        
+        # 一時ファイルを削除
+        if 'temp_credentials_path' in locals():
+            try:
+                os.unlink(temp_credentials_path)
+            except:
+                pass
+                
     except Exception as e:
         print(f"Google Cloud Vision APIの認証エラー: {e}")
         print("GOOGLE_APPLICATION_CREDENTIALS環境変数を設定してください")
+        
+        # 一時ファイルを削除
+        if 'temp_credentials_path' in locals():
+            try:
+                os.unlink(temp_credentials_path)
+            except:
+                pass
         return
     
+    # Heroku環境では環境変数からポートを取得
+    port = int(os.environ.get('PORT', FLASK_PORT))
+    
     # Flaskアプリケーションを起動
-    # 本番環境では適切なWSGIサーバーを使用してください
-    app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG)
+    app.run(host=FLASK_HOST, port=port, debug=FLASK_DEBUG)
 
 if __name__ == "__main__":
     main() 

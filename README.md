@@ -82,11 +82,30 @@ python line_image_ocr_saver.py
 
 ## 使用方法
 
+### ローカル実行
+
 1. スクリプトを実行すると、Flaskサーバーが起動します（ポート5001）
 2. LINEでボットに画像を送信すると、自動的に保存されます
 3. OCR機能付きの場合は、文字起こし結果もLINEで返信されます
 4. 保存された画像は `saved_images` ディレクトリに保存されます
 5. ファイル名形式: `YYYYMMDD_HHMMSS_ユーザーID_メッセージID.jpg`
+
+### Herokuデプロイ
+
+1. Heroku CLIをインストール
+2. Herokuアプリケーションを作成
+3. 環境変数を設定：
+   ```bash
+   heroku config:set LINE_CHANNEL_ACCESS_TOKEN="YOUR_CHANNEL_ACCESS_TOKEN"
+   heroku config:set LINE_CHANNEL_SECRET="YOUR_CHANNEL_SECRET"
+   heroku config:set GOOGLE_APPLICATION_CREDENTIALS='{"type": "service_account", ...}'
+   ```
+4. デプロイ：
+   ```bash
+   git push heroku main
+   ```
+5. LINE Developers ConsoleでWebhook URLを設定：
+   - URL: `https://your-app-name.herokuapp.com/callback`
 
 ## ファイル構造
 
@@ -100,6 +119,9 @@ python line_image_ocr_saver.py
 ├── setup_google_cloud.example.sh # Google Cloud認証設定のサンプル
 ├── .gitignore                   # Git除外設定
 ├── README.md                    # このファイル
+├── Procfile                     # Herokuデプロイ設定
+├── runtime.txt                  # Pythonバージョン指定
+├── app.json                     # Herokuアプリケーション設定
 └── saved_images/                # 保存された画像（自動生成）
     └── .gitkeep                 # ディレクトリ保持用ファイル
 ```
