@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# LINE API設定
+export LINE_CHANNEL_ACCESS_TOKEN="YOUR_CHANNEL_ACCESS_TOKEN"
+export LINE_CHANNEL_SECRET="YOUR_CHANNEL_SECRET"
+
+# 保存先ディレクトリ
+export SAVE_DIR="saved_images"
+
+# Flask設定
+export FLASK_HOST="0.0.0.0"
+export FLASK_PORT="5001"
+export FLASK_DEBUG="True"
+
+# ログ設定
+export LOG_LEVEL="INFO"
+
+echo "環境変数を設定しました。"
+echo "LINE_CHANNEL_ACCESS_TOKEN: $LINE_CHANNEL_ACCESS_TOKEN"
+echo "LINE_CHANNEL_SECRET: $LINE_CHANNEL_SECRET" 
