@@ -1,0 +1,171 @@
+# =============================================================================
+# スマレジ / Bカート API エンドポイント定義
+# =============================================================================
+# PoC の生命線となるファイル。コードを触らずに、ここだけで挙動を切り替えられる。
+#
+# confirmed の意味:
+#   true  … 公式ドキュメント / 実機で裏取り済み
+#   false … 推定値。トライアル環境で 00_probe_capabilities.py により要検証
+#
+# ★ confirmed: false の項目は「間違っている前提」で扱うこと。
+#   probe スクリプトが実機の応答を見て、ここを直すための材料を出力する。
+# =============================================================================
+
+smaregi:
+  # ---------------------------------------------------------------------------
+  # 認証: OAuth 2.0 Client Credentials Grant（アプリ単位のアクセストークン）
+  # ---------------------------------------------------------------------------
+  auth:
+    confirmed: true
+    # {contract_id} は実行時に .env の SMAREGI_CONTRACT_ID で置換
+    token_url:
+      sandbox: "https://id.smaregi.dev/app/{contract_id}/token"
+      production: "https://id.smaregi.jp/app/{contract_id}/token"
+    # client_id / client_secret は Basic 認証ヘッダで送る
+    grant_type: "client_credentials"
+    # 本 PoC で必要なスコープ。アプリ登録画面で許可しておくこと。
+    scopes:
+      - "pos.products:read"
+      - "pos.products:write"
+      - "pos.customers:read"
+      - "pos.customers:write"
+      - "pos.stores:read"
+
+  api_base:
+    sandbox: "https://api.smaregi.dev/{contract_id}/pos"
+    production: "https://api.smaregi.jp/{contract_id}/pos"
+
+  endpoints:
+    list_stores:
+      confirmed: true
+      method: GET
+      path: "/stores"
+
+    list_products:
+      confirmed: true
+      method: GET
+      path: "/products"
+
+    create_product:
+      confirmed: true
+      method: POST
+      path: "/products"
+
+    list_customers:
+      confirmed: true
+      method: GET
+      path: "/customers"
+
+    create_customer:
+      confirmed: true
+      method: POST
+      path: "/customers"
+
+    # --- 価格まわり ---------------------------------------------------------
+    get_product_prices:
+      confirmed: true
+      method: GET
+      path: "/products/{product_id}/prices"
+
+    # 本 PoC の主役。1件ずつ価格を登録/更新する。
+    update_product_price:
+      confirmed: false   # ★ メソッド(POST/PATCH)と挙動(upsert可否)を probe で確認
+      method: POST
+      path: "/products/{product_id}/prices"
+
+    # 一括更新。存在すれば「1件あたり所要時間」が桁違いに改善するため必ず確認する。
+    bulk_update_product_prices:
+      confirmed: false   # ★ 存在自体が未確認。probe で 404 なら 1件ずつにフォールバック
+      method: POST
+      path: "/products/prices/bulk"
+
+    # 顧客グループ（会員ランク）。会員別価格を「グループ単位」で持てるかの鍵。
+    list_customer_groups:
+      confirmed: false   # ★ パス名が /customer_groups か /customer_types か要確認
+      method: GET
+      path: "/customer_groups"
+
+  # ---------------------------------------------------------------------------
+  # 価格区分 (priceDivision)  ※検索で裏取り済み
+  # ---------------------------------------------------------------------------
+  price_divisions:
+    confirmed: true
+    values:
+      1: "商品単価"
+      2: "会員価格"
+      3: "原価"
+      4: "商品単価詳細"
+      5: "会員価格詳細"
+    # ★ 最重要の未確認点 ★
+    # スマレジの「会員価格」(2) は 店舗×商品 に対して1つの値であり、
+    # 「会員(顧客)ごとに異なる価格」を持てるとは限らない。
+    # 「会員価格詳細」(5) が顧客グループ別価格に相当するかを probe で判定する。
+    note: |
+      会員ごとの掛け率を持てるかは priceDivision=5 (会員価格詳細) が
+      顧客グループIDを受け付けるかどうかに依存する。ここが PoC 検証項目1の
+      成否を分ける分岐点。受け付けない場合の代替案は docs/01_API調査メモ.md 参照。
+
+  rate_limit:
+    confirmed: false
+    note: "公式に明示された数値を未確認。実測して docs に記載する。"
+    # 安全側の既定値（実測後に緩める）
+    max_requests_per_sec: 5
+
+bcart:
+  # ---------------------------------------------------------------------------
+  # 認証: OAuth 2.0（認可コード or クライアントクレデンシャル）
+  # ---------------------------------------------------------------------------
+  auth:
+    confirmed: false   # ★ トライアル環境で払い出される認証方式に合わせて要調整
+    authorize_url: "https://app.bcart.jp/oauth/authorize"
+    token_url: "https://api.bcart.jp/oauth/token"
+    grant_type: "client_credentials"
+
+  api_base:
+    production: "https://api.bcart.jp/v1"
+
+  endpoints:
+    list_items:
+      confirmed: false
+      method: GET
+      path: "/items"
+
+    list_customers:
+      confirmed: false
+      method: GET
+      path: "/customers"
+
+    # 価格グループ（Bカートの「ステージ」/「価格グループ」）
+    list_stages:
+      confirmed: false
+      method: GET
+      path: "/stages"
+
+    # 会員が属する価格グループの変更（＝グループ単位の掛け率を会員に適用）
+    update_customer:
+      confirmed: false
+      method: PATCH
+      path: "/customers/{customer_id}"
+
+    # 価格グループの掛け率そのものの更新
+    update_stage:
+      confirmed: false
+      method: PATCH
+      path: "/stages/{stage_id}"
+
+    # 会員ID別・商品別の個別単価（Bカートの「会員ID別の単価設定」）
+    update_item_price:
+      confirmed: false
+      method: PATCH
+      path: "/items/{item_id}/prices"
+
+  # ---------------------------------------------------------------------------
+  # レート制限 ※検索で裏取り済み
+  # ---------------------------------------------------------------------------
+  rate_limit:
+    confirmed: true
+    window_sec: 300
+    max_requests: 300
+    # 超過すると 300 秒ロックされる。ロックは PoC を止めるので必ず余裕を持つ。
+    note: "300秒あたり300回。超過で300秒ロック。実効 1req/sec が安全ライン。"
+    max_requests_per_sec: 1
