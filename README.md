@@ -1,5 +1,7 @@
 # LINE画像保存・OCRスクリプト
 
+> 同梱ツール: X投稿から来週上がりそうな株をスコアリングし仮想売買で検証する [stock_predictor](stock_predictor/README.md)
+
 LINEで送られた画像を自動的に保存し、Google Cloud Vision APIで文字起こし（OCR）するPythonスクリプトです。
 
 ## 機能

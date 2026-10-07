@@ -53,3 +53,7 @@ saved_images/*.jpeg
 # 一時ファイル
 *.tmp
 *.temp 
+# stock_predictor
+stock_predictor/data/*.db
+stock_predictor/data/prices/
+stock_predictor/config.toml

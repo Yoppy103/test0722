@@ -1,0 +1,45 @@
+# cp stock_predictor/config.example.toml stock_predictor/config.toml して編集
+db_path = "stock_predictor/data/stock_predictor.db"
+timezone = "Asia/Tokyo"
+
+[x]
+# bearer_token は環境変数 X_BEARER_TOKEN 推奨
+min_followers = 10000
+lookback_days = 7
+max_pages = 10
+lang = "ja"
+query = "(銘柄 OR 株 OR 決算 OR 上方修正 OR ストップ高 OR 爆上げ OR 買い増し) -is:retweet"
+# 監視アカウントを固定する場合（検索より安く・ノイズが少ない）
+# accounts = ["account1", "account2"]
+accounts = []
+
+[scoring]
+market = "jp"            # jp / us / both
+weight_social = 0.5
+weight_technical = 0.3
+weight_fundamental = 0.2
+min_unique_authors = 2
+min_score = 55.0
+top_n = 5
+
+[trading]
+initial_capital = 3000000
+lot_size = 100           # 米国株なら 1
+commission_rate = 0.0
+slippage_bps = 10
+stop_atr_mult = 1.5
+min_stop_pct = 0.03
+max_stop_pct = 0.08
+take_profit_atr_mult = 3.0
+min_take_profit_pct = 0.05
+trail_activate_pct = 0.04
+trail_pct = 0.03
+rsi_exit = 78
+momentum_exit = true
+avoid_earnings = true
+signal_execution = "next_open"
+
+[market_data]
+provider = "yfinance"    # yfinance / csv / synthetic
+csv_dir = "stock_predictor/data/prices"
+benchmark = "^N225"      # 米国株なら "^GSPC"
